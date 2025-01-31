@@ -8,6 +8,7 @@ import cors from "cors";
 import { GenericService } from "./common/services/generic-crud.service";
 import { getOrCreateModel } from "./common/utils/collection.util";
 import { GenericController } from "./common/controllers/generic-crud.controller";
+var removeRoute = require('express-remove-route');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -40,9 +41,9 @@ const reloadRoutes = async () => {
 
       // Remove old route if it exists
       if (dynamicRoutes.has(routePath)) {
-        console.log(app._router.stack);
         app._router.stack = app._router.stack.filter((layer: any) => layer.route?.path !== routePath);
         dynamicRoutes.delete(routePath);
+        removeRoute(app, modelName);
       }
 
       const model = getOrCreateModel(modelName);
@@ -64,11 +65,31 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 // ** Watch for MongoDB changes (Insert, Update, Delete) **
+// const watchDatabaseChanges = () => {
+//   const changeStream = Project.watch();
+
+//   changeStream.on("change", async (change) => {
+//     console.log("Database Change Detected:", change);
+//     await reloadRoutes();
+//   });
+// };
+
 const watchDatabaseChanges = () => {
-  const changeStream = Projects.watch();
+  const changeStream = Projects.watch([], {
+    fullDocumentBeforeChange: "whenAvailable",
+  });
 
   changeStream.on("change", async (change) => {
-    console.log("Database Change Detected:", change);
+    if (change.operationType === "delete") {
+      const deletedDoc = change.fullDocumentBeforeChange;
+      const moduleNames = deletedDoc.modules.map((mod : any) => mod.name);
+      for (const moduleName of moduleNames) {
+        const modelName = `${deletedDoc.name}_${moduleName}`;
+        mongoose.connection.dropCollection(modelName);
+        removeRoute(app, modelName);
+      }
+    }
+
     await reloadRoutes();
   });
 };

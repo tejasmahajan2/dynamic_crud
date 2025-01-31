@@ -1,31 +1,24 @@
 import { Document } from "mongoose";
 import { GenericService } from "../services/generic-crud.service";
-import express, { NextFunction, Request, Response, Router } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import { Types } from "mongoose";
 
 export class GenericController<T extends Document> {
-  // public router: Router;
 
-  constructor(private service: GenericService<T>) {
-    // this.router = this.getRoutes();
-    // this.initializeRoutes();
-  }
-
-  // private initializeRoutes() {
-  // this.router.post("/", this.create.bind(this));
-  // this.router.get("/", this.findAll.bind(this));
-  // this.router.get("/:id", this.findOne.bind(this));
-  // this.router.put("/:id", this.update.bind(this));
-  // this.router.delete("/:id", this.delete.bind(this));
-  // }
+  constructor(private service: GenericService<T>) { }
 
   public getRoutes(): express.Router {
     let appRoutes = express.Router({ mergeParams: true });
 
     appRoutes.post('/', async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const data = await this.service.create(req.body);
-        res.status(201).json(data);
+        if (req.body) {
+          res.status(401).json({ error: 'Invalid data.' });
+        } else {
+          console.log(req.body);
+          const data = await this.service.create(req.body);
+          res.status(201).json(data);
+        }
       } catch (error) {
         res.status(400).json({ error: 'Internal server error' });
       }
