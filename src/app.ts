@@ -1,10 +1,13 @@
 import dotenv from "dotenv";
 dotenv.config({});
 
-import express from "express";
+import express, { Request, Response } from "express";
 import mongoose from "mongoose";
 import connectDB from "./config/database.config";
 import cors from "cors";
+import { GenericService } from "./common/services/generic-crud.service";
+import { getOrCreateModel } from "./common/utils/collection.util";
+import { GenericController } from "./common/controllers/generic-crud.controller";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -25,33 +28,6 @@ const Projects = mongoose.model("projects", ProjectSchema);
 // Store active routes
 const dynamicRoutes = new Map<string, express.Router>();
 
-// Function to create CRUD routes dynamically
-const generateCrudController = (moduleName: string) => {
-  const router = express.Router();
-
-  router.get("/", (req, res) => {
-    res.json({ message: `Fetching all ${moduleName} records` });
-  });
-
-  router.post("/", (req, res) => {
-    res.json({ message: `Creating a new ${moduleName} record`, data: req.body });
-  });
-
-  router.get("/:id", (req, res) => {
-    res.json({ message: `Fetching ${moduleName} with ID: ${req.params.id}` });
-  });
-
-  router.put("/:id", (req, res) => {
-    res.json({ message: `Updating ${moduleName} with ID: ${req.params.id}`, data: req.body });
-  });
-
-  router.delete("/:id", (req, res) => {
-    res.json({ message: `Deleting ${moduleName} with ID: ${req.params.id}` });
-  });
-
-  return router;
-};
-
 // Function to reload API routes dynamically
 const reloadRoutes = async () => {
 
@@ -67,20 +43,29 @@ const reloadRoutes = async () => {
         dynamicRoutes.delete(routePath);
       }
 
-      // Create new route
-      const router = generateCrudController(module?.name || 'student');
+      const service = new GenericService(getOrCreateModel(`${project.name}_${module.name}`));
+      const controller = new GenericController(service);
+      const router = controller.getRoutes();
       app.use(routePath, router);
       dynamicRoutes.set(routePath, router);
     });
   });
 };
 
+app.get("/", (req: Request, res: Response) => {
+  res.send("Express + TypeScript Server");
+});
+
+app.get("/health", (req: Request, res: Response) => {
+  res.send("Service is healthy.");
+});
+
 // ** Watch for MongoDB changes (Insert, Update, Delete) **
 const watchDatabaseChanges = () => {
   const changeStream = Projects.watch();
 
   changeStream.on("change", async (change) => {
-    console.log("Database Change Detected:");
+    console.log("Database Change Detected:", change);
     await reloadRoutes();
   });
 };
