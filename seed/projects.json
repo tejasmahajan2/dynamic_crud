@@ -1,0 +1,13 @@
+{
+    "name": "telehealth",
+    "modules": [
+        {
+            "name": "products",
+            "fields": [
+                "name",
+                "price",
+                "stock"
+            ]
+        }
+    ]
+}
