@@ -36,14 +36,17 @@ const reloadRoutes = async () => {
   projects.forEach((project) => {
     project.modules.forEach((module) => {
       const routePath = `/${project.name}/${module.name}`;
+      const modelName = `${project.name}_${module.name}`;
 
       // Remove old route if it exists
       if (dynamicRoutes.has(routePath)) {
+        console.log(app._router.stack);
         app._router.stack = app._router.stack.filter((layer: any) => layer.route?.path !== routePath);
         dynamicRoutes.delete(routePath);
       }
 
-      const service = new GenericService(getOrCreateModel(`${project.name}_${module.name}`));
+      const model = getOrCreateModel(modelName);
+      const service = new GenericService(model);
       const controller = new GenericController(service);
       const router = controller.getRoutes();
       app.use(routePath, router);
