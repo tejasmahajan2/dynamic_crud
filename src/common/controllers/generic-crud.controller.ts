@@ -1,6 +1,7 @@
 import { Document } from "mongoose";
 import { GenericService } from "../services/generic-crud.service";
 import express, { NextFunction, Request, Response, Router } from "express";
+import { Types } from "mongoose";
 
 export class GenericController<T extends Document> {
   // public router: Router;
@@ -39,18 +40,17 @@ export class GenericController<T extends Document> {
       }
     });
 
-
-    appRoutes.get('/:id', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    appRoutes.get('/:id', this.validateId, async (req: Request, res: Response, next: NextFunction): Promise<any> => {
       try {
         const data = await this.service.findOne(req.params.id);
         if (!data) return res.status(404).json({ message: "Not found" });
         res.json(data);
-      } catch (error) {
+      } catch (error: any) {
         res.status(500).json({ error: 'Internal server error' });
       }
     });
 
-    appRoutes.put('/:id', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    appRoutes.put('/:id', this.validateId, async (req: Request, res: Response, next: NextFunction): Promise<any> => {
       try {
         const data = await this.service.update(req.params.id, req.body);
         if (!data) return res.status(404).json({ message: "Not found" });
@@ -60,7 +60,7 @@ export class GenericController<T extends Document> {
       }
     });
 
-    appRoutes.delete('/:id', async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    appRoutes.delete('/:id', this.validateId, async (req: Request, res: Response, next: NextFunction): Promise<any> => {
       try {
         const data = await this.service.delete(req.params.id);
         if (!data) return res.status(404).json({ message: "Not found" });
@@ -70,7 +70,11 @@ export class GenericController<T extends Document> {
       }
     });
 
-
     return appRoutes;
+  }
+
+  validateId(req: Request, res: Response, next: NextFunction) {
+    if (!Types.ObjectId.isValid(req.params.id)) res.status(404).json({ message: "Invalid object id." });
+    else next();
   }
 }
