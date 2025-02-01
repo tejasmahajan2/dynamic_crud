@@ -2,15 +2,19 @@ import { Document } from "mongoose";
 import { GenericService } from "../services/generic-crud.service";
 import express, { NextFunction, Request, Response } from "express";
 import { Types } from "mongoose";
+import { ValidateFunction } from "ajv";
 
 export class GenericController<T extends Document> {
+  validator?: ValidateFunction;
 
-  constructor(private service: GenericService<T>) { }
+  constructor(private service: GenericService<T>, validator?: ValidateFunction) {
+    this.validator = validator;
+  }
 
   public getRoutes(): express.Router {
     let appRoutes = express.Router({ mergeParams: true });
 
-    appRoutes.post('/', this.validateSchema, async (req: Request, res: Response, next: NextFunction) => {
+    appRoutes.post('/', this.validateSchema.bind(this), async (req: Request, res: Response, next: NextFunction) => {
       try {
         const data = await this.service.create(req.body);
         res.status(201).json(data);
@@ -38,7 +42,7 @@ export class GenericController<T extends Document> {
       }
     });
 
-    appRoutes.put('/:id', this.validateId, this.validateSchema, async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    appRoutes.put('/:id', this.validateId, this.validateSchema.bind(this), async (req: Request, res: Response, next: NextFunction): Promise<any> => {
       try {
         const data = await this.service.update(req.params.id, req.body);
         if (!data) return res.status(404).json({ message: `Not found` });
@@ -66,12 +70,21 @@ export class GenericController<T extends Document> {
     else next();
   }
 
-  validateSchema(req: Request, res: Response, next: NextFunction) {
+  validateSchema(req: Request, res: Response, next: NextFunction): any {
     if (!req.body || Object.keys(req.body).length === 0) {
-      res.status(400).json({ error: "Request body is empty!" });
-    } else {
-      next();
+      return res.status(400).json({ error: "Request body is empty!" });
     }
+
+    if (!this?.validator) {
+      return next();
+    }  
+
+    const isValid = this.validator(req.body);
+    if (!isValid) {
+      return res.status(400).json({ errors: this.validator.errors });
+    }
+
+    next();
   }
 
   private extractSecondSegment(url: string) {

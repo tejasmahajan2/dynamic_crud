@@ -6,8 +6,13 @@ import mongoose from "mongoose";
 import connectDB from "./config/database.config";
 import cors from "cors";
 import { GenericService } from "./common/services/generic-crud.service";
-import { getOrCreateModel } from "./common/utils/collection.util";
+import { collections, getOrCreateModel } from "./common/utils/collection.util";
 import { GenericController } from "./common/controllers/generic-crud.controller";
+import Ajv from "ajv";
+import addFormats from "ajv-formats";
+
+const ajv = new Ajv();
+addFormats(ajv);
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,7 +20,6 @@ const port = process.env.PORT || 3000;
 // middlwares
 app.use(express.json());
 app.use(cors());
-
 
 connectDB();
 
@@ -55,8 +59,13 @@ const reloadRoutes = async () => {
 
   const projects = await Projects.find();
 
-  projects.forEach((project) => {
-    project.modules.forEach((module) => {
+  for (const project of projects) {
+    const schemaEntity = await collections.schemas.findOne({ projectId: project._id });
+
+    const schema = schemaEntity?.schema || {};  // Use empty object if schema is missing
+    const validator = schema && Object.keys(schema).length ? ajv.compile(schema) : undefined;  // Set to undefined if schema is invalid
+
+    for (const module of project.modules) {
       const routePath = `/${project.name}/${module.name}`;
       const modelName = `${project.name}_${module.name}`;
 
@@ -71,16 +80,18 @@ const reloadRoutes = async () => {
       _router.get("/", (req: Request, res: Response) => {
         res.send(`This is the ${module.name} route of ${project.name}`);
       });
+
       dynamicRoutes.set(routePath, _router);
 
       const model = getOrCreateModel(modelName);
       const service = new GenericService(model);
-      const controller = new GenericController(service);
+
+      const controller = new GenericController(service, validator);
       const router = controller.getRoutes();
       dynamicRoutes.set(routePath, router);
       app.use(routePath, router);
-    });
-  });
+    }
+  }
 };
 
 // ** Watch for MongoDB changes (Insert, Update, Delete) **
@@ -128,7 +139,7 @@ reloadRoutes().then(() => {
   app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
     watchDatabaseChanges(); // Start watching for changes
-    
+
     app._router.stack = app._router.stack.filter((layer: any) => {
       if (!layer.route) return true; // Ignore non-route layers (middleware)
       return layer.route.path !== "/y/products";

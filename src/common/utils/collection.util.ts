@@ -1,8 +1,9 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import { BaseSchemaFields } from "../schemas/base-schema";
 
 export const collections = {
     projects: mongoose.connection.collection("projects"),
+    schemas: mongoose.connection.collection("schema"),
 }
 
 export function getOrCreateModel(collectionName: string) {
