@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({});
 
-import express, { NextFunction, Request, Response } from "express";
+import express, { NextFunction, Request, RequestHandler, Response } from "express";
 import mongoose from "mongoose";
 import connectDB from "./config/database.config";
 import cors from "cors";
@@ -10,8 +10,8 @@ import { collections, getOrCreateModel } from "./common/utils/collection.util";
 import { GenericController } from "./common/controllers/generic-crud.controller";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
-import { afterReq, beforeReq } from "./common/constants/variables.constants";
 import { GenericSchemaFields } from "./common/schemas/generic.schema";
+import { defaultMiddlewareFunction } from "./common/constants/variables.constants";
 
 const ajv = new Ajv();
 addFormats(ajv);
@@ -107,8 +107,21 @@ const reloadRoutes = async () => {
       const model = getOrCreateModel(modelName);
       const service = new GenericService(model);
 
-      console.log(project.before);
-      console.log(project.after);
+      let beforeReq : RequestHandler = defaultMiddlewareFunction;
+      let afterReq : RequestHandler = defaultMiddlewareFunction;
+      
+      try {
+        beforeReq = new Function('req', 'res', 'next', `"use strict"; return ${project.before}`)() as unknown as RequestHandler;
+      } catch (error) {
+        console.error("Error compiling before middleware:", error);
+      }
+
+      try {
+        afterReq = new Function('req', 'res', 'next', `"use strict"; return ${project.after}`)() as unknown as RequestHandler;
+      } catch (error) {
+        console.error("Error compiling after middleware:", error);
+      }
+
 
       const controller = new GenericController(service, validator, beforeReq, afterReq);
       const router = controller.getRoutes();

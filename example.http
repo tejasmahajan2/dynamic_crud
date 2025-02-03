@@ -2,7 +2,7 @@
 GET http://localhost:3333/telehealth/products
 
 ###
-GET http://localhost:3333/telehealth/products/679dc850a5861755162be52b
+GET http://localhost:3333/telehealth/products/67a08e15d6b3a72f38d48f2d
 
 ###
 POST http://localhost:3333/telehealth/products HTTP/1.1
@@ -13,7 +13,7 @@ content-type: application/json
 }
 
 ###
-PUT http://localhost:3333/telehealth/products/67a08a64aa708f05a6a380d9 HTTP/1.1
+PUT http://localhost:3333/telehealth/products/67a08e15d6b3a72f38d48f2d HTTP/1.1
 content-type: application/json
 
 {
@@ -21,4 +21,4 @@ content-type: application/json
 }
 
 ###
-DELETE http://localhost:3333/telehealth/products/67a08a64aa708f05a6a380d9
+DELETE http://localhost:3333/telehealth/products/67a08a8baa708f05a6a380e1

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction, RequestHandler } from "express"
 
 export const defaultMiddlewareFunction = ((req: Request, res: Response, next: NextFunction) => next());
 
-export const createMiddleware = (funcString: string): RequestHandler => {
+export const createMiddleware = (funcString: string | null | undefined): RequestHandler => {
     try {
         // Log the incoming function string
         console.log("Compiling middleware function:", funcString);
@@ -10,13 +10,13 @@ export const createMiddleware = (funcString: string): RequestHandler => {
         // Compile the function dynamically
         const fn = new Function('req', 'res', 'next', `
         try {
-          ${funcString} // Execute the dynamic function logic
-          next(); // Ensure next() is called after execution
+          ${funcString}
+          next();
         } catch (error) {
           console.error("Error in dynamic middleware:", error);
-          next(error); // Handle errors if needed
+          next(); // Handle errors if needed
         }
-      `);
+      `)();
 
         // Log the compiled function (only the core logic, not extra layers)
         console.log("Compiled function:", fn.toString());
