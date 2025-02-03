@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({});
 
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
 import connectDB from "./config/database.config";
 import cors from "cors";
@@ -107,6 +107,9 @@ const reloadRoutes = async () => {
       const model = getOrCreateModel(modelName);
       const service = new GenericService(model);
 
+      console.log(project.before);
+      console.log(project.after);
+
       const controller = new GenericController(service, validator, beforeReq, afterReq);
       const router = controller.getRoutes();
       dynamicRoutes.set(routePath, router);
@@ -153,6 +156,12 @@ const watchDatabaseChanges = () => {
     await reloadRoutes();
   });
 };
+
+// Add this error handling middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error(err.stack);
+  res.status(500).send('Something went wrong');
+});
 
 
 // Initial load of routes

@@ -1,0 +1,24 @@
+###
+GET http://localhost:3333/telehealth/products
+
+###
+GET http://localhost:3333/telehealth/products/679dc850a5861755162be52b
+
+###
+POST http://localhost:3333/telehealth/products HTTP/1.1
+content-type: application/json
+
+{
+    "postOfficeBox": "Rajiv Gandhi"
+}
+
+###
+PUT http://localhost:3333/telehealth/products/67a08a64aa708f05a6a380d9 HTTP/1.1
+content-type: application/json
+
+{
+    "postOfficeBox": "Rajiv Gandhi Circle"
+}
+
+###
+DELETE http://localhost:3333/telehealth/products/67a08a64aa708f05a6a380d9
