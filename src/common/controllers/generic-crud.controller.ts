@@ -1,10 +1,10 @@
-import { Document } from "mongoose";
 import { GenericService } from "../services/generic-crud.service";
 import express, { NextFunction, Request, RequestHandler, Response } from "express";
 import { Types } from "mongoose";
 import { ValidateFunction } from "ajv";
+import { IGenericSchema } from "../interfaces/generic.interface";
 
-export class GenericController<T extends Document> {
+export class GenericController<T extends IGenericSchema> {
   private validator?: ValidateFunction;
   private beforeReq: RequestHandler;
   private afterReq: RequestHandler;
@@ -33,7 +33,7 @@ export class GenericController<T extends Document> {
           const data = await this.service.create(req.body);
           res.status(201).json(data);
         } catch (error) {
-          res.status(400).json({ error: 'Internal server error' });
+          res.status(500).json({ error: `Unexpected error occured during creation.` });
         }
       });
 
@@ -42,7 +42,7 @@ export class GenericController<T extends Document> {
         const data = await this.service.findAll();
         res.json(data);
       } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: `Unexpected error occured during retrieval.` });
       }
     });
 
@@ -52,7 +52,7 @@ export class GenericController<T extends Document> {
         if (!data) return res.status(404).json({ message: "Not found" });
         res.json(data);
       } catch (error: any) {
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: `Unexpected error occured during retrieval.` });
       }
     });
 
@@ -72,7 +72,7 @@ export class GenericController<T extends Document> {
         if (!data) return res.status(404).json({ message: "Not found" });
         res.json({ message: "Deleted successfully" });
       } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: `Unexpected error occured during deletion.` });
       }
     });
 

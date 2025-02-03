@@ -11,7 +11,7 @@ import { GenericController } from "./common/controllers/generic-crud.controller"
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
 import { afterReq, beforeReq } from "./common/constants/variables.constants";
-import { BaseSchemaFields } from "./common/schemas/base-schema";
+import { GenericSchemaFields } from "./common/schemas/generic.schema";
 
 const ajv = new Ajv();
 addFormats(ajv);
@@ -30,7 +30,7 @@ const ProjectSchema = new mongoose.Schema({
   before: String,
   after: String,
   modules: [{ name: String, fields: [String] }],
-  ...BaseSchemaFields
+  ...GenericSchemaFields
 });
 
 const Projects = mongoose.model("projects", ProjectSchema);

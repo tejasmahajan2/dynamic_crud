@@ -1,6 +1,7 @@
-import { Model, Document } from "mongoose";
+import { Model } from "mongoose";
+import { IGenericSchema } from "../interfaces/generic.interface";
 
-export class GenericService<T extends Document> {
+export class GenericService<T extends IGenericSchema> {
   constructor(private model: Model<T>) {}
 
   async create(data: Partial<T>): Promise<T> {
