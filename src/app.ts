@@ -10,6 +10,8 @@ import { collections, getOrCreateModel } from "./common/utils/collection.util";
 import { GenericController } from "./common/controllers/generic-crud.controller";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
+import { afterReq, beforeReq } from "./common/constants/variables.constants";
+import { BaseSchemaFields } from "./common/schemas/base-schema";
 
 const ajv = new Ajv();
 addFormats(ajv);
@@ -25,7 +27,10 @@ connectDB();
 
 const ProjectSchema = new mongoose.Schema({
   name: String,
-  modules: [{ name: String, fields: [String] }]
+  before: String,
+  after: String,
+  modules: [{ name: String, fields: [String] }],
+  ...BaseSchemaFields
 });
 
 const Projects = mongoose.model("projects", ProjectSchema);
@@ -57,7 +62,23 @@ const reloadRoutes = async () => {
   // Clear all existing routes first (wipe out the app._router.stack)
   app._router.stack = app._router.stack.filter((layer: any) => !layer.route);
 
+  // await Projects.create({
+  //   "name": "dell",
+  //   "modules": [
+  //     {
+  //       "name": "products",
+  //       "fields": [
+  //         "name",
+  //         "price",
+  //         "stock"
+  //       ]
+  //     }
+  //   ]
+  // });
+
   const projects = await Projects.find();
+
+  if (projects?.length === 0) return;
 
   for (const project of projects) {
     const schemaEntity = await collections.schemas.findOne({ projectId: project._id });
@@ -86,7 +107,7 @@ const reloadRoutes = async () => {
       const model = getOrCreateModel(modelName);
       const service = new GenericService(model);
 
-      const controller = new GenericController(service, validator);
+      const controller = new GenericController(service, validator, beforeReq, afterReq);
       const router = controller.getRoutes();
       dynamicRoutes.set(routePath, router);
       app.use(routePath, router);
@@ -139,12 +160,6 @@ reloadRoutes().then(() => {
   app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
     watchDatabaseChanges(); // Start watching for changes
-
-    app._router.stack = app._router.stack.filter((layer: any) => {
-      if (!layer.route) return true; // Ignore non-route layers (middleware)
-      return layer.route.path !== "/y/products";
-    });
-
   });
 });
 

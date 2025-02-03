@@ -1,27 +1,41 @@
 import { Document } from "mongoose";
 import { GenericService } from "../services/generic-crud.service";
-import express, { NextFunction, Request, Response } from "express";
+import express, { NextFunction, Request, RequestHandler, Response } from "express";
 import { Types } from "mongoose";
 import { ValidateFunction } from "ajv";
 
 export class GenericController<T extends Document> {
-  validator?: ValidateFunction;
+  private validator?: ValidateFunction;
+  private beforeReq: RequestHandler;
+  private afterReq: RequestHandler;
 
-  constructor(private service: GenericService<T>, validator?: ValidateFunction) {
+  constructor(
+    private service: GenericService<T>,
+    validator?: ValidateFunction,
+    beforeReq: RequestHandler = (req, res, next) => next(),
+    afterReq: RequestHandler = (req, res, next) => next()
+  ) {
     this.validator = validator;
+    this.beforeReq = beforeReq;
+    this.afterReq = afterReq;
   }
 
   public getRoutes(): express.Router {
     let appRoutes = express.Router({ mergeParams: true });
 
-    appRoutes.post('/', this.validateSchema.bind(this), async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const data = await this.service.create(req.body);
-        res.status(201).json(data);
-      } catch (error) {
-        res.status(400).json({ error: 'Internal server error' });
-      }
-    });
+    appRoutes.post(
+      "/",
+      this.beforeReq,
+      this.validateSchema.bind(this),
+      this.afterReq, // ✅ Logs response before sending
+      async (req: Request, res: Response, next: NextFunction) => {
+        try {
+          const data = await this.service.create(req.body);
+          res.status(201).json(data);
+        } catch (error) {
+          res.status(400).json({ error: 'Internal server error' });
+        }
+      });
 
     appRoutes.get('/', async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -65,19 +79,19 @@ export class GenericController<T extends Document> {
     return appRoutes;
   }
 
-  validateId(req: Request, res: Response, next: NextFunction) {
+  private validateId(req: Request, res: Response, next: NextFunction) {
     if (!Types.ObjectId.isValid(req.params.id)) res.status(404).json({ message: "Invalid object id." });
     else next();
   }
 
-  validateSchema(req: Request, res: Response, next: NextFunction): any {
+  private validateSchema(req: Request, res: Response, next: NextFunction): any {
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.status(400).json({ error: "Request body is empty!" });
     }
 
     if (!this?.validator) {
       return next();
-    }  
+    }
 
     const isValid = this.validator(req.body);
     if (!isValid) {
